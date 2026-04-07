@@ -2,9 +2,9 @@
 
 **Address any node in your Markdown.**
 
-[![npm version](https://img.shields.io/npm/v/nodiom)](https://www.npmjs.com/package/nodiom)
-[![license](https://img.shields.io/npm/l/nodiom)](./LICENSE)
-[![test](https://img.shields.io/github/actions/workflow/status/synexiom-labs/nodiom/test.yml?label=tests)](https://github.com/synexiom-labs/nodiom/actions)
+[![npm version](https://img.shields.io/npm/v/@synexiom-labs/nodiom)](https://www.npmjs.com/package/@synexiom-labs/nodiom)
+[![license](https://img.shields.io/npm/l/@synexiom-labs/nodiom)](./LICENSE)
+[![test](https://img.shields.io/github/actions/workflow/status/Synexiom-Labs/nodiom/test.yml?label=tests)](https://github.com/Synexiom-Labs/nodiom/actions)
 
 Markdown has structure. Every tool ignores it. Nodiom doesn't.
 
@@ -21,7 +21,7 @@ Nodiom solves this by treating Markdown as what it actually is: a tree. Every he
 ## Quick Example
 
 ```typescript
-import { Nodiom } from 'nodiom';
+import { Nodiom } from '@synexiom-labs/nodiom';
 
 const doc = await Nodiom.fromFile('./project-wiki.md');
 
@@ -43,7 +43,7 @@ await doc.save();
 ## Install
 
 ```bash
-npm install nodiom
+npm install @synexiom-labs/nodiom
 ```
 
 **Requirements:** Node.js 18+
@@ -174,7 +174,7 @@ try {
 A LangChain-style agent maintaining a project wiki:
 
 ```typescript
-import { Nodiom } from 'nodiom';
+import { Nodiom } from '@synexiom-labs/nodiom';
 
 async function agentUpdateWiki(wikiPath: string, taskDescription: string) {
   // Load with lock — safe for concurrent agent access on the same machine
