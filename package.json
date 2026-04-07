@@ -1,6 +1,6 @@
 {
   "name": "@synexiom-labs/nodiom",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Address any node in your Markdown. A structured read/write engine for Markdown documents.",
   "keywords": [
     "markdown",
