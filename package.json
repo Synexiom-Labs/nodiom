@@ -7,9 +7,16 @@
     "ast",
     "mdast",
     "remark",
-    "parser",
+    "markdown-parser",
+    "markdown-editor",
+    "structured-content",
     "ai-agent",
-    "structured"
+    "llm",
+    "mcp",
+    "model-context-protocol",
+    "agent-memory",
+    "typescript",
+    "nodejs"
   ],
   "author": "Synexiom Labs Inc.",
   "license": "MIT",

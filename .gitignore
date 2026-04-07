@@ -4,3 +4,8 @@ coverage/
 *.lock
 !package-lock.json
 .DS_Store
+
+# Internal planning files
+NODIOM_BRIEFING.md
+1.png
+*.code-workspace
