@@ -2,7 +2,7 @@
 
 **Address any node in your Markdown.**
 
-[![npm version](https://img.shields.io/npm/v/@synexiom-labs/nodiom)](https://www.npmjs.com/package/@synexiom-labs/nodiom)
+[![npm version](https://img.shields.io/npm/v/@synexiom-labs%2Fnodiom)](https://www.npmjs.com/package/@synexiom-labs/nodiom)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![test](https://img.shields.io/github/actions/workflow/status/Synexiom-Labs/nodiom/test.yml?label=tests)](https://github.com/Synexiom-Labs/nodiom/actions)
 
