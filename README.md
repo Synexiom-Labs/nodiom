@@ -246,6 +246,6 @@ npm test
 
 ## License
 
-MIT — [Synexiom Labs Inc.](https://synexiom.com)
+MIT — [Synexiom Labs Inc.](https://synexiomlabs.com)
 
 *Born from the state layer powering Cortexiom's reasoning architecture.*
