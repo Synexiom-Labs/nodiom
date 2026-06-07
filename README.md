@@ -8,6 +8,8 @@
 
 Markdown has structure. Every tool ignores it. Nodiom doesn't.
 
+> **Nodiom Cloud is coming.** A hosted HTTP API for structured Markdown operations — no local setup, no filesystem, built for distributed multi-agent workflows. [Join the waitlist →](https://nodiom.md#cloud)
+
 ---
 
 ## The Problem
@@ -241,6 +243,19 @@ cd nodiom
 npm install
 npm test
 ```
+
+---
+
+## Nodiom Cloud
+
+The local library handles single-machine workflows. **Nodiom Cloud** is a hosted HTTP API for teams running distributed multi-agent systems where local file access isn't possible.
+
+- Stateless HTTP endpoint — works in any serverless environment
+- MCP-compatible — agents connect directly, no code changes
+- Distributed concurrency — no single-machine locking limitations
+- Full audit log — see exactly which agent changed what, and roll back
+
+**[Join the waitlist at nodiom.md](https://nodiom.md#cloud)**
 
 ---
 
