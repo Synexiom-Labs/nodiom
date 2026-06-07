@@ -155,7 +155,7 @@ await doc.unlock();
 ### Error Handling
 
 ```typescript
-import { SelectorNotFoundError, SelectorParseError, LockError } from 'nodiom';
+import { SelectorNotFoundError, SelectorParseError, LockError } from '@synexiom-labs/nodiom';
 
 try {
   doc.read('# Project > ## Taks'); // typo
@@ -225,9 +225,9 @@ await doc.save(); // writes and releases the lock
 ## Roadmap
 
 - **v0.2.0** — `insert()` with positional control (`before` / `after` a sibling), `diff()` structural diffing, glob selectors (`## *Tasks*`)
-- **v0.3.0** — LangChain tool wrapper, MCP server (expose Nodiom as Model Context Protocol tools)
+- **v0.3.0** — LangChain tool wrapper
 - **v1.0.0** — Stable selector syntax, production-ready API
-- **Nodiom Cloud** — Hosted API for serverless and distributed multi-agent use. Real-time sync, WebSocket subscriptions, structural merge for concurrent edits.
+- **Nodiom Cloud** — Hosted HTTP API for serverless and distributed multi-agent use. No local setup required. [Join the waitlist →](https://nodiom.md#cloud)
 
 ---
 
