@@ -21,11 +21,12 @@ export function serializeNodes(nodes: RootContent[]): string {
 }
 
 /**
- * Normalizes new content provided by the user into a clean Markdown string.
- * If the content is already a string, it is parsed and re-serialized to
- * ensure it is valid Markdown.
+ * Returns user-provided content trimmed, without re-serialization.
+ *
+ * Re-serializing through remark-stringify silently corrupts content:
+ * list bullets change (`- [ ]` → `* [ ]`), underscores in filenames
+ * get escaped, etc. Users are responsible for providing valid Markdown.
  */
 export function normalizeContent(content: string): string {
-  const ast = processor.parse(content) as Root;
-  return processor.stringify(ast);
+  return content.trim();
 }

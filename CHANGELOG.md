@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.1.2] - 2026-06-12
+
+### Fixed
+- **Lock acquired before read** — `fromFile()` now acquires the advisory lock before reading the file, closing the race window where two processes could clobber each other's writes
+- **`read()` returns body only for heading selectors** — previously included the heading line, causing `write(sel, read(sel))` to duplicate the heading; now returns body content only, consistent with what `write()` expects
+- **`append()` blank line separator** — changed from `\n` to `\n\n` so appended paragraphs are correctly separated rather than merged into the preceding block
+- **`normalizeContent()` no longer re-serializes user content** — remark-stringify was silently corrupting content: `- [ ]` task list markers became `* [ ]`, underscores in filenames were escaped. User content is now used as-is (trimmed only)
+
+### Added
+- Regression test suite (`tests/regression.test.ts`) covering all four fixes with exact assertions
+
+[0.1.2]: https://github.com/Synexiom-Labs/nodiom/compare/v0.1.1...v0.1.2
+
+---
+
 ## [0.1.1] - 2026-04-07
 
 ### Fixed
