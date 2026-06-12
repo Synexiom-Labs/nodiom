@@ -32,15 +32,17 @@ export class Nodiom {
    * If options.lock is true, acquires an advisory file lock.
    */
   static async fromFile(filePath: string, options: FromFileOptions = {}): Promise<Nodiom> {
+    // Acquire lock BEFORE reading so no other process can write between our read and lock.
+    let lockHandle: LockHandle | null = null;
+    if (options.lock) {
+      const timeoutMs = options.lockTimeout ?? 5000;
+      lockHandle = await acquireLock(filePath, timeoutMs);
+    }
+
     const source = await readFile(filePath, 'utf-8');
     const ast = parseMarkdown(source);
     const instance = new Nodiom(source, ast, filePath);
-
-    if (options.lock) {
-      const timeoutMs = options.lockTimeout ?? 5000;
-      instance.lockHandle = await acquireLock(filePath, timeoutMs);
-    }
-
+    instance.lockHandle = lockHandle;
     return instance;
   }
 
@@ -66,8 +68,16 @@ export class Nodiom {
     const path = parseSelector(selector);
     const location = resolveSelector(this.ast, this.source, path);
 
-    // Slice the original source — roundtrip fidelity guaranteed
-    return this.source.slice(location.startOffset, location.endOffset).trim();
+    if (location.targetNode) {
+      // Element selector — return the element's own content
+      return this.source.slice(location.startOffset, location.endOffset).trim();
+    }
+
+    // Heading selector — return body only, not the heading line itself.
+    // startOffset points to the heading node start; we skip past the heading
+    // so that write(sel, read(sel)) does not embed the heading twice.
+    const headingEnd = location.headingNode!.position!.end.offset;
+    return this.source.slice(headingEnd, location.endOffset).trim();
   }
 
   /**
@@ -198,7 +208,7 @@ export class Nodiom {
     const insertAt = location.endOffset;
     this.source =
       this.source.slice(0, insertAt) +
-      '\n' +
+      '\n\n' +
       normalized.trimEnd() +
       this.source.slice(insertAt);
 
