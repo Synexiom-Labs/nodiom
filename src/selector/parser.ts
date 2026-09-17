@@ -52,15 +52,34 @@ function parseSegment(part: string, fullSelector: string): SelectorSegment {
     return parseHeadingSegment(part, fullSelector);
   }
 
-  // Try element: type[index] — e.g. li[0], p[-1]
+  // Try element by content: type[contains="…"] — e.g. li[contains="c_7f3a"]
+  const containsMatch = /^([a-zA-Z]+)\[contains=(?:"([^"]*)"|'([^']*)')\]$/.exec(part);
+  if (containsMatch) {
+    const text = containsMatch[2] ?? containsMatch[3] ?? '';
+    if (text === '') {
+      throw new SelectorParseError(fullSelector, `'${part}' has an empty contains= value`);
+    }
+    return {
+      kind: 'element',
+      elementType: validElementType(containsMatch[1]!, part, fullSelector),
+      match: { by: 'contains', text },
+    };
+  }
+
+  // Try element by index: type[index] — e.g. li[0], p[-1]
   const elementMatch = /^([a-zA-Z]+)\[(-?\d+)\]$/.exec(part);
   if (elementMatch) {
-    return parseElementSegment(elementMatch, part, fullSelector);
+    return {
+      kind: 'element',
+      elementType: validElementType(elementMatch[1]!, part, fullSelector),
+      match: { by: 'index', index: parseInt(elementMatch[2]!, 10) },
+    };
   }
 
   throw new SelectorParseError(
     fullSelector,
-    `unrecognized segment '${part}' — expected a heading (e.g. "## Tasks") or element (e.g. "li[0]")`,
+    `unrecognized segment '${part}' — expected a heading (e.g. "## Tasks"), ` +
+      `an element by index (e.g. "li[0]"), or an element by content (e.g. "li[contains=\\"c_7f3a\\"]")`,
   );
 }
 
@@ -90,24 +109,16 @@ function parseHeadingSegment(part: string, fullSelector: string): HeadingSegment
   return { kind: 'heading', depth: depth as HeadingSegment['depth'], text };
 }
 
-function parseElementSegment(
-  match: RegExpExecArray,
+function validElementType(
+  elementType: string,
   part: string,
   fullSelector: string,
-): ElementSegment {
-  const elementType = match[1]!;
-  const index = parseInt(match[2]!, 10);
-
+): ElementSegment['elementType'] {
   if (!ELEMENT_TYPES.has(elementType)) {
     throw new SelectorParseError(
       fullSelector,
       `unknown element type '${elementType}' in '${part}' — valid types: ${[...ELEMENT_TYPES].join(', ')}`,
     );
   }
-
-  return {
-    kind: 'element',
-    elementType: elementType as ElementSegment['elementType'],
-    index,
-  };
+  return elementType as ElementSegment['elementType'];
 }

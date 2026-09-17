@@ -39,27 +39,27 @@ describe('selector parser', () => {
   describe('element segments', () => {
     it('parses a list item selector', () => {
       const path = parseSelector('## Tasks > li[0]');
-      expect(path[1]).toEqual({ kind: 'element', elementType: 'li', index: 0 });
+      expect(path[1]).toEqual({ kind: 'element', elementType: 'li', match: { by: 'index', index: 0 } });
     });
 
     it('parses a paragraph selector', () => {
       const path = parseSelector('## Section > p[0]');
-      expect(path[1]).toEqual({ kind: 'element', elementType: 'p', index: 0 });
+      expect(path[1]).toEqual({ kind: 'element', elementType: 'p', match: { by: 'index', index: 0 } });
     });
 
     it('parses a code block selector', () => {
       const path = parseSelector('## Section > code[0]');
-      expect(path[1]).toEqual({ kind: 'element', elementType: 'code', index: 0 });
+      expect(path[1]).toEqual({ kind: 'element', elementType: 'code', match: { by: 'index', index: 0 } });
     });
 
     it('parses a table selector', () => {
       const path = parseSelector('## Section > table[0]');
-      expect(path[1]).toEqual({ kind: 'element', elementType: 'table', index: 0 });
+      expect(path[1]).toEqual({ kind: 'element', elementType: 'table', match: { by: 'index', index: 0 } });
     });
 
     it('parses negative indexing', () => {
       const path = parseSelector('## Tasks > li[-1]');
-      expect(path[1]).toEqual({ kind: 'element', elementType: 'li', index: -1 });
+      expect(path[1]).toEqual({ kind: 'element', elementType: 'li', match: { by: 'index', index: -1 } });
     });
   });
 

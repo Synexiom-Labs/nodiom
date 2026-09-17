@@ -76,6 +76,37 @@ The depth of the `#` characters must match the heading depth in the document.
 
 Valid element types: `p`, `li`, `code`, `blockquote`, `table`, `hr`
 
+### Content segments
+
+An index is a position, not an identity. If another writer appends to the same
+section between the moment you compute `li[2]` and the moment you write to it,
+that index now points at a different node — and the write lands on the wrong
+one, silently.
+
+Address by content instead whenever more than one writer touches a document:
+
+```
+'## In Progress > li[contains="c_7f3a"]'   → The list item whose text contains "c_7f3a"
+"## Notes > p[contains='TODO']"            → The paragraph containing "TODO"
+```
+
+The substring is matched against the node's own source text, and must match
+**exactly one** node in scope. Matching several throws `AmbiguousSelectorError`
+rather than picking the first — silently editing one of several candidates is
+the failure this exists to prevent.
+
+```js
+import { AmbiguousSelectorError } from '@synexiom-labs/nodiom';
+
+try {
+  doc.delete('## In Progress > li[contains="c_7f3a"]');
+} catch (e) {
+  if (e instanceof AmbiguousSelectorError) {
+    // Use a longer or more distinctive substring.
+  }
+}
+```
+
 ### Heading scope semantics
 
 "Content under `## Tasks`" means all nodes that appear after the `## Tasks` heading until the next heading of equal or lesser depth. This matches how you naturally read a Markdown document.

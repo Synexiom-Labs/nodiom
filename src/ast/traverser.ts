@@ -1,5 +1,5 @@
 import type { Heading, Root, RootContent } from 'mdast';
-import { SelectorNotFoundError } from '../errors.js';
+import { AmbiguousSelectorError, SelectorNotFoundError } from '../errors.js';
 import type { ElementSegment, HeadingSegment, SelectorPath } from '../selector/types.js';
 import type { ResolvedLocation } from '../types.js';
 import { levenshtein } from '../utils/levenshtein.js';
@@ -97,21 +97,39 @@ function resolveElementSegment(
     throw new SelectorNotFoundError(fullSelector, []);
   }
 
-  // Resolve negative indices
-  let idx = segment.index;
-  if (idx < 0) {
-    idx = count + idx;
-  }
+  let targetNode: RootContent;
 
-  if (idx < 0 || idx >= count) {
-    const fullSelector = path.map(segmentToString).join(' > ');
-    throw new SelectorNotFoundError(
-      fullSelector,
-      [],
+  if (segment.match.by === 'contains') {
+    /*
+     * Content addressing: match on the node's own source text. Unlike an index,
+     * this survives another writer appending to the same scope, which is what
+     * makes it safe for concurrent agents.
+     */
+    const needle = segment.match.text;
+    const matches = candidates.filter((node) =>
+      source.slice(getNodeStartOffset(node, source), getNodeEndOffset(node, source)).includes(needle),
     );
+
+    const fullSelector = path.map(segmentToString).join(' > ');
+    if (matches.length === 0) throw new SelectorNotFoundError(fullSelector, []);
+    if (matches.length > 1) throw new AmbiguousSelectorError(fullSelector, matches.length);
+
+    targetNode = matches[0]!;
+  } else {
+    // Resolve negative indices
+    let idx = segment.match.index;
+    if (idx < 0) {
+      idx = count + idx;
+    }
+
+    if (idx < 0 || idx >= count) {
+      const fullSelector = path.map(segmentToString).join(' > ');
+      throw new SelectorNotFoundError(fullSelector, []);
+    }
+
+    targetNode = candidates[idx]!;
   }
 
-  const targetNode = candidates[idx]!;
   const startOffset = getNodeStartOffset(targetNode, source);
   const endOffset = getNodeEndOffset(targetNode, source);
 
@@ -246,5 +264,7 @@ function segmentToString(segment: import('../selector/types.js').SelectorSegment
   if (segment.kind === 'heading') {
     return `${'#'.repeat(segment.depth)} ${segment.text}`;
   }
-  return `${segment.elementType}[${segment.index}]`;
+  return segment.match.by === 'contains'
+    ? `${segment.elementType}[contains="${segment.match.text}"]`
+    : `${segment.elementType}[${segment.match.index}]`;
 }

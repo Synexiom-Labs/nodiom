@@ -8,7 +8,13 @@ import type { LockHandle } from './lock/file-lock.js';
 import { parseSelector } from './selector/parser.js';
 import type { FromFileOptions, OutlineNode, QueryResult } from './types.js';
 
-export { NodiomError, SelectorNotFoundError, SelectorParseError, LockError } from './errors.js';
+export {
+  NodiomError,
+  SelectorNotFoundError,
+  SelectorParseError,
+  AmbiguousSelectorError,
+  LockError,
+} from './errors.js';
 export type { FromFileOptions, OutlineNode, QueryResult } from './types.js';
 
 export class Nodiom {

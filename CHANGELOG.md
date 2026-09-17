@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.2.0] - 2026-09-17
+
+### Added
+- **Content-addressed element selectors** — `li[contains="c_7f3a"]` matches a list item by a substring of its own source text instead of by position. Positional selectors (`li[0]`) are only valid for as long as nothing before them changes; a second writer appending to the same scope silently shifts them. Content selectors survive concurrent edits, which makes them the correct choice whenever more than one agent writes to a document.
+- `AmbiguousSelectorError`, thrown when a content selector matches more than one node. Matching several and picking the first would reintroduce exactly the class of bug this feature prevents, so ambiguity is an error.
+
+### Changed
+- Internal `ElementSegment` now carries a discriminated `match` field (`{ by: 'index', index }` or `{ by: 'contains', text }`) rather than a bare `index`. This type is not part of the public API; `parseSelector` output shape changes for anyone reaching into internals.
+
+[0.2.0]: https://github.com/Synexiom-Labs/nodiom/compare/v0.1.2...v0.2.0
+
+---
+
 ## [0.1.2] - 2026-06-12
 
 ### Fixed
