@@ -6,14 +6,26 @@ import { Nodiom } from '../src/index.js';
 const FIXTURES = join(import.meta.dirname, 'fixtures');
 
 describe('edge cases', () => {
-  it('first-match wins for duplicate headings', async () => {
+  it('a duplicated heading is ambiguous rather than silently resolving to the first', async () => {
     const source = await readFile(join(FIXTURES, 'edge-cases.md'), 'utf-8');
     const doc = Nodiom.fromString(source);
-    const result = doc.read('# Duplicate Heading > ## Tasks');
-    // Should match the FIRST "## Tasks" section
-    expect(result).toContain('alpha');
-    expect(result).toContain('beta');
-    expect(result).not.toContain('gamma');
+    const { AmbiguousSelectorError } = await import('../src/errors.js');
+    expect(() => doc.read('# Duplicate Heading > ## Tasks')).toThrow(AmbiguousSelectorError);
+  });
+
+  it('each duplicated heading is addressable by index', async () => {
+    const source = await readFile(join(FIXTURES, 'edge-cases.md'), 'utf-8');
+    const doc = Nodiom.fromString(source);
+
+    const first = doc.read('# Duplicate Heading > ## Tasks[0]');
+    expect(first).toContain('alpha');
+    expect(first).not.toContain('gamma');
+
+    const second = doc.read('# Duplicate Heading > ## Tasks[1]');
+    expect(second).toContain('gamma');
+    expect(second).not.toContain('alpha');
+
+    expect(doc.read('# Duplicate Heading > ## Tasks[-1]')).toContain('gamma');
   });
 
   it('headings inside fenced code blocks are not matched', async () => {

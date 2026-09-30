@@ -24,21 +24,24 @@ export class SelectorNotFoundError extends NodiomError {
 }
 
 /**
- * Thrown when a content selector matches more than one node.
+ * Thrown when a selector matches more than one node — a content selector whose
+ * substring appears in several items, or a heading that occurs more than once
+ * in the same scope.
  *
- * Addressing by content is only safe if it is unambiguous, so this is an error
- * rather than a first-match-wins: silently editing one of several candidates is
- * exactly the class of bug content addressing exists to prevent.
+ * This is an error rather than first-match-wins: silently editing one of
+ * several candidates is exactly the class of bug structural addressing exists
+ * to prevent.
  */
 export class AmbiguousSelectorError extends NodiomError {
   readonly selector: string;
   readonly matchCount: number;
 
-  constructor(selector: string, matchCount: number) {
-    super(
-      `Selector '${selector}' matched ${matchCount} nodes — a content selector must match exactly one. ` +
-        `Use a longer or more distinctive substring.`,
-    );
+  constructor(
+    selector: string,
+    matchCount: number,
+    hint = 'A content selector must match exactly one — use a longer or more distinctive substring.',
+  ) {
+    super(`Selector '${selector}' matched ${matchCount} nodes. ${hint}`);
     this.name = 'AmbiguousSelectorError';
     this.selector = selector;
     this.matchCount = matchCount;

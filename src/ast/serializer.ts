@@ -1,10 +1,23 @@
+import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
 import type { Root, RootContent } from 'mdast';
 
-const processor = unified().use(remarkParse).use(remarkGfm).use(remarkStringify);
+/*
+ * Frontmatter must be recognised explicitly. Without it, the closing `---` of
+ * a YAML block reads as a setext heading underline, so the properties become a
+ * heading called "title: …" — one that tree() reports, a selector can target,
+ * and a delete destroys. With it, the block parses as its own yaml/toml node:
+ * never a heading, never inside a heading's scope, and — because edits splice
+ * by source offset — left byte-identical by every operation.
+ */
+const processor = unified()
+  .use(remarkParse)
+  .use(remarkFrontmatter, ['yaml', 'toml'])
+  .use(remarkGfm)
+  .use(remarkStringify);
 
 /** Parses a Markdown string into an mdast Root. */
 export function parseMarkdown(source: string): Root {

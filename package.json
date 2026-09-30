@@ -1,6 +1,6 @@
 {
   "name": "@synexiom-labs/nodiom",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Address any node in your Markdown. A structured read/write engine for Markdown documents.",
   "keywords": [
     "markdown",
@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "proper-lockfile": "^4.1.2",
+    "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",

@@ -106,7 +106,22 @@ function parseHeadingSegment(part: string, fullSelector: string): HeadingSegment
     throw new SelectorParseError(fullSelector, `heading segment '${part}' has no text`);
   }
 
-  return { kind: 'heading', depth: depth as HeadingSegment['depth'], text };
+  const segment: HeadingSegment = { kind: 'heading', depth: depth as HeadingSegment['depth'], text };
+
+  /*
+   * "## Tasks[1]" addresses the second of several "## Tasks". The index must sit
+   * directly against the text — "## References [1]", with a space, stays a
+   * literal heading, since that is how such headings are actually written.
+   * The resolver also tries the whole text literally first, so a heading that
+   * genuinely reads "Tasks[1]" is still reachable.
+   */
+  const indexed = /^(.*\S)\[(-?\d+)\]$/.exec(text);
+  if (indexed) {
+    segment.baseText = indexed[1]!;
+    segment.index = parseInt(indexed[2]!, 10);
+  }
+
+  return segment;
 }
 
 function validElementType(

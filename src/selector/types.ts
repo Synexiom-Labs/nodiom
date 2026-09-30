@@ -1,8 +1,19 @@
-/** A heading segment: matches a heading node by depth and text. e.g. "## Tasks" */
+/**
+ * A heading segment: matches a heading node by depth and text, e.g. "## Tasks".
+ *
+ * When a scope contains the same heading more than once, a bare segment is
+ * ambiguous and resolution throws. "## Tasks[1]" picks one explicitly —
+ * zero-based and negative-capable, the same as li[n].
+ */
 export interface HeadingSegment {
   kind: 'heading';
   depth: 1 | 2 | 3 | 4 | 5 | 6;
+  /** The full text as written, including any trailing [n]. Matched literally first. */
   text: string;
+  /** Present only when the segment ends in [n] with no space before it. */
+  index?: number;
+  /** The text without its trailing [n]. Present only alongside index. */
+  baseText?: string;
 }
 
 export type ElementType =

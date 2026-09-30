@@ -64,6 +64,25 @@ A selector is a `" > "`-separated path of segments, each matching a node in the 
 
 The depth of the `#` characters must match the heading depth in the document.
 
+**Duplicate headings.** If the same heading appears more than once in a scope,
+a bare segment is ambiguous and throws `AmbiguousSelectorError` — nodiom never
+silently picks the first. Qualify it with its parent heading, or address one by
+index, zero-based and negative-capable like `li[n]`:
+
+```
+"# Doc > ## Notes[0]"    → The first "## Notes" under "# Doc"
+"# Doc > ## Notes[1]"    → The second
+"# Doc > ## Notes[-1]"   → The last
+```
+
+The index must sit directly against the text. `"## References [1]"`, with a
+space, is matched as a literal heading, and a heading that genuinely reads
+`Tasks[1]` is always tried literally first.
+
+**Frontmatter.** A YAML (`---`) or TOML (`+++`) block at the top of a document
+is recognised as frontmatter. It never appears in `tree()`, can't be addressed
+by a selector, and is left byte-identical by every edit.
+
 ### Element segments
 
 ```

@@ -10,7 +10,8 @@ import { levenshtein } from '../utils/levenshtein.js';
  * Heading scope semantics: "nodes under heading H" = all sibling nodes after H
  * until the next heading node of depth <= H.depth.
  *
- * First match wins for duplicate headings.
+ * A heading that appears more than once in a scope is ambiguous and throws;
+ * address a specific one with "## Tasks[1]".
  */
 export function resolveSelector(
   ast: Root,
@@ -43,14 +44,7 @@ function resolveHeadingSegment(
   segment: HeadingSegment,
 ): ResolvedLocation {
   // Find the heading node matching this segment
-  const headingIndex = findHeadingIndex(nodes, segment);
-
-  if (headingIndex === -1) {
-    const allHeadings = collectAllHeadingTexts(nodes);
-    const suggestions = fuzzyMatch(segment.text, allHeadings);
-    const fullSelector = path.map(segmentToString).join(' > ');
-    throw new SelectorNotFoundError(fullSelector, suggestions);
-  }
+  const headingIndex = pickHeading(nodes, segment, path);
 
   const headingNode = nodes[headingIndex] as Heading;
 
@@ -142,18 +136,54 @@ function resolveElementSegment(
   };
 }
 
-/** Finds the index of the first heading node matching depth and text (case-sensitive). */
-function findHeadingIndex(nodes: RootContent[], segment: HeadingSegment): number {
+/** Indices of every heading in scope matching depth and text (case-sensitive). */
+function headingIndices(nodes: RootContent[], depth: number, text: string): number[] {
+  const found: number[] = [];
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]!;
     if (node.type === 'heading') {
       const h = node as Heading;
-      if (h.depth === segment.depth && extractHeadingText(h) === segment.text) {
-        return i;
-      }
+      if (h.depth === depth && extractHeadingText(h) === text) found.push(i);
     }
   }
-  return -1;
+  return found;
+}
+
+/**
+ * Picks the one heading a segment refers to, or throws.
+ *
+ * The literal text is tried first, so a heading that genuinely reads
+ * "Tasks[1]" still resolves. Otherwise a trailing [n] indexes into the headings
+ * named by the rest of the text. A bare segment matching several headings is
+ * ambiguous and throws — editing the first one silently was the previous
+ * behaviour, and it is exactly the class of bug this library exists to prevent.
+ */
+function pickHeading(nodes: RootContent[], segment: HeadingSegment, path: SelectorPath): number {
+  const fullSelector = path.map(segmentToString).join(' > ');
+  const literal = headingIndices(nodes, segment.depth, segment.text);
+
+  if (literal.length === 1) return literal[0]!;
+
+  if (literal.length > 1) {
+    const hashes = '#'.repeat(segment.depth);
+    throw new AmbiguousSelectorError(
+      fullSelector,
+      literal.length,
+      `The heading '${hashes} ${segment.text}' appears ${literal.length} times in this scope. ` +
+        `Address one with '${hashes} ${segment.text}[0]' … '${hashes} ${segment.text}[${literal.length - 1}]', ` +
+        `or qualify it with its parent heading.`,
+    );
+  }
+
+  if (segment.index !== undefined && segment.baseText !== undefined) {
+    const candidates = headingIndices(nodes, segment.depth, segment.baseText);
+    const idx = segment.index < 0 ? candidates.length + segment.index : segment.index;
+    if (idx >= 0 && idx < candidates.length) return candidates[idx]!;
+    throw new SelectorNotFoundError(fullSelector, []);
+  }
+
+  const suggestions = fuzzyMatch(segment.text, collectAllHeadingTexts(nodes));
+  throw new SelectorNotFoundError(fullSelector, suggestions);
 }
 
 /** Collects all nodes after headingIndex until the next heading of <= depth. */

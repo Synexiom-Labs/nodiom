@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.3.0] - 2026-09-30
+
+Both fixes in this release were reported by an early user who ran nodiom across 1,560 of their own notes. Thank you.
+
+### Fixed
+- **YAML and TOML frontmatter is no longer parsed as a heading.** The closing `---` of a frontmatter block reads as a setext heading underline, so a note's properties surfaced in `tree()` as a heading called `title: …` — one a selector could target, and a `delete()` would destroy, taking the note's properties with it. Frontmatter now parses as its own node via `remark-frontmatter`: never a heading, never inside a heading's scope, and left byte-identical by every edit. Measured on 845 real Markdown files that begin with frontmatter: 0.2.0 exposed the properties as a heading in all 845; 0.3.0 in none. All 2,369 files in that sample still round-trip byte-identically.
+
+### Changed
+- **BREAKING: a heading that appears more than once in a scope is now ambiguous.** Previously the first match won, silently — so an edit meant for the second `## Notes` landed on the first. It now throws `AmbiguousSelectorError`, the same rule content selectors already follow. Selectors whose headings are unique in scope are unaffected.
+- `AmbiguousSelectorError` accepts an optional hint, so its message explains how to disambiguate for the kind of selector that failed.
+
+### Added
+- **Indexed heading segments** — `## Notes[1]` addresses the second of several `## Notes`, zero-based and negative-capable like `li[n]`. The index must sit directly against the text: `## References [1]`, with a space, stays a literal heading, and literal text is always tried first.
+
+[0.3.0]: https://github.com/Synexiom-Labs/nodiom/compare/v0.2.0...v0.3.0
+
+---
+
 ## [0.2.0] - 2026-09-17
 
 ### Added
