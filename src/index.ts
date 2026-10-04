@@ -8,6 +8,9 @@ import type { LockHandle } from './lock/file-lock.js';
 import { parseSelector } from './selector/parser.js';
 import type { FromFileOptions, OutlineNode, QueryResult } from './types.js';
 
+/** A Markdown list marker at the start of written content: -, *, + or 1. / 1) */
+const LIST_MARKER = /^(?:[-*+]|\d+[.)])[ \t]/;
+
 export {
   NodiomError,
   SelectorNotFoundError,
@@ -178,8 +181,16 @@ export class Nodiom {
       const node = location.targetNode;
       const start = node.position!.start.offset;
       const end = node.position!.end.offset;
-      this.source =
-        this.source.slice(0, start) + normalized.trimEnd() + this.source.slice(end);
+      let replacement = normalized.trimEnd();
+      // A list item stays a list item: content written without its own bullet
+      // keeps the original one (and checkbox), as a heading write keeps the
+      // heading. Without it the item became a paragraph that swallowed the
+      // next item, and the selector stopped matching.
+      if (node.type === 'listItem' && !LIST_MARKER.test(replacement)) {
+        const [, marker = '- ', box = ''] = /^((?:[-*+]|\d+[.)])[ \t]+)(\[[ xX]\][ \t]+)?/.exec(this.source.slice(start, end)) ?? [];
+        replacement = marker + (box && !/^\[[ xX]\]\s/.test(replacement) ? box : '') + replacement;
+      }
+      this.source = this.source.slice(0, start) + replacement + this.source.slice(end);
     } else {
       // Heading selector — replace the scope content (preserve the heading line)
       const headingNode = location.headingNode!;

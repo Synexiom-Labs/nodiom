@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.3.1] - 2026-10-04
+
+### Fixed
+
+- `write()` to a list item keeps it a list item. Content written without its own bullet now keeps the item's original marker (and checkbox, if it had one), the way a heading write keeps the heading. Before, the item became a paragraph that swallowed the next item, and the selector stopped matching. Found in a real multi-agent run.
+
+---
+
 ## [0.3.0] - 2026-09-30
 
 Both fixes in this release were reported by an early user who ran nodiom across 1,560 of their own notes. Thank you.
