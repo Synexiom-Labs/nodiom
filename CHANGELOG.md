@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ---
 
+## [0.3.2] - 2026-10-12
+
+### Documentation
+
+- README rewritten for where nodiom is now: the library, the nodiom-mcp server and Nodiom Cloud side by side; current read/write semantics (heading reads return the body only, `readList()` returns each item's source, writing to a list item keeps its marker); all error classes; concurrency across machines; and a roadmap of what's actually planned. No code changes.
+
+---
+
 ## [0.3.1] - 2026-10-04
 
 ### Fixed

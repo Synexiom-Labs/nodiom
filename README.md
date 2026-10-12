@@ -8,33 +8,50 @@
 
 Markdown has structure. Every tool ignores it. Nodiom doesn't.
 
----
-
-## The Problem
-
-When an AI agent or any program needs to modify a Markdown document, it loads the whole file as a string, uses fragile regex to find the right section, splices in new content, and hopes the formatting didn't break.
-
-Nodiom solves this by treating Markdown as what it actually is: a tree. Every heading creates a branch, every list item is a node. You address them with path-like selectors — the same way you'd query a DOM node or a database row.
+Nodiom reads and edits Markdown as a tree. Headings are branches; lists, paragraphs, tables and code blocks are nodes. You address them with path-like selectors, the way you'd query a DOM, and change one without rewriting, or breaking, the rest of the file.
 
 ---
 
-## Quick Example
+## Three ways to use it
+
+| | What it is | Where |
+|---|---|---|
+| **The library** (this repo) | Structural read/write for Markdown in Node.js, on files or strings | `npm install @synexiom-labs/nodiom` |
+| **nodiom-mcp** | An MCP server that gives AI agents these operations on your local Markdown files | [Synexiom-Labs/nodiom-mcp](https://github.com/Synexiom-Labs/nodiom-mcp) |
+| **Nodiom Cloud** | Hosted: shared documents and boards that agents on different machines, and people, read and write together, with a human review step | [nodiom.md](https://www.nodiom.md/?utm_source=github&utm_medium=readme) |
+
+All three use the same engine and the same selectors.
+
+---
+
+## The problem
+
+When an AI agent, or any program, needs to change a Markdown document, it usually loads the whole file as a string, finds the right section with a regex, splices in new text, and hopes the formatting survived. Two writers at once, and one of them silently loses.
+
+Nodiom treats Markdown as what it is: a tree. You say *where* (`# Project > ## Tasks > li[contains="c_7f3a"]`) and *what* (read, write, append, delete), and nothing outside that node changes.
+
+---
+
+## Quick example
 
 ```typescript
 import { Nodiom } from '@synexiom-labs/nodiom';
 
-const doc = await Nodiom.fromFile('./project-wiki.md');
+const doc = await Nodiom.fromFile('./project.md', { lock: true });
 
-// Read everything under a heading
-const tasks = doc.read('# Project Alpha > ## Active Tasks');
+// Read everything under a heading (the heading line itself isn't included)
+const summary = doc.read('# Project > ## Summary');
 
-// Add a new task
-doc.append('# Project Alpha > ## Active Tasks', '- [ ] Deploy to staging');
+// Add a task
+doc.append('# Project > ## Tasks', '- [ ] Deploy to staging');
 
-// Remove a completed item
-doc.delete('# Project Alpha > ## Completed > li[0]');
+// Tick it, addressed by its text rather than its position
+doc.write('# Project > ## Tasks > li[contains="Deploy to staging"]', '- [x] Deploy to staging');
 
-// Save back to disk
+// Remove the first finished item
+doc.delete('# Project > ## Done > li[0]');
+
+// Write back to disk and release the lock
 await doc.save();
 ```
 
@@ -50,7 +67,7 @@ npm install @synexiom-labs/nodiom
 
 ---
 
-## Core Concepts: Selectors
+## Selectors
 
 A selector is a `" > "`-separated path of segments, each matching a node in the document's structure.
 
@@ -58,16 +75,15 @@ A selector is a `" > "`-separated path of segments, each matching a node in the 
 
 ```
 "# Project Alpha"              → The H1 "Project Alpha" and all its content
-"## Tasks"                     → Any top-level H2 named "Tasks"
+"## Tasks"                     → A top-level H2 named "Tasks"
 "# Project Alpha > ## Tasks"   → The H2 "Tasks" nested under H1 "Project Alpha"
 ```
 
-The depth of the `#` characters must match the heading depth in the document.
+The number of `#` characters must match the heading's depth in the document.
 
-**Duplicate headings.** If the same heading appears more than once in a scope,
-a bare segment is ambiguous and throws `AmbiguousSelectorError` — nodiom never
-silently picks the first. Qualify it with its parent heading, or address one by
-index, zero-based and negative-capable like `li[n]`:
+**Scope.** "Content under `## Tasks`" means everything after that heading until the next heading of the same or a higher level, which is how you'd read it.
+
+**Duplicate headings.** If the same heading appears more than once in a scope, a bare segment is ambiguous and throws `AmbiguousSelectorError`; nodiom never silently picks the first. Qualify it with its parent heading, or address one by index, zero-based and negative-capable like `li[n]`:
 
 ```
 "# Doc > ## Notes[0]"    → The first "## Notes" under "# Doc"
@@ -75,13 +91,9 @@ index, zero-based and negative-capable like `li[n]`:
 "# Doc > ## Notes[-1]"   → The last
 ```
 
-The index must sit directly against the text. `"## References [1]"`, with a
-space, is matched as a literal heading, and a heading that genuinely reads
-`Tasks[1]` is always tried literally first.
+The index must sit directly against the text. `"## References [1]"`, with a space, is matched as a literal heading, and a heading that genuinely reads `Tasks[1]` is always tried literally first.
 
-**Frontmatter.** A YAML (`---`) or TOML (`+++`) block at the top of a document
-is recognised as frontmatter. It never appears in `tree()`, can't be addressed
-by a selector, and is left byte-identical by every edit.
+**Frontmatter.** A YAML (`---`) or TOML (`+++`) block at the top of a document is recognised as frontmatter. It never appears in `tree()`, can't be addressed by a selector, and is left byte-identical by every edit.
 
 ### Element segments
 
@@ -89,204 +101,203 @@ by a selector, and is left byte-identical by every edit.
 "## Tasks > li[0]"     → First list item under ## Tasks
 "## Tasks > li[-1]"    → Last list item (negative indexing)
 "## Notes > p[0]"      → First paragraph under ## Notes
-"## Arch > table[0]"   → First table under ## Architecture
-"## Arch > code[0]"    → First code block under ## Architecture
+"## Arch > table[0]"   → First table under ## Arch
+"## Arch > code[0]"    → First code block under ## Arch
 ```
 
-Valid element types: `p`, `li`, `code`, `blockquote`, `table`, `hr`
+Element types: `p`, `li`, `code`, `blockquote`, `table`, `hr`.
 
 ### Content segments
 
-An index is a position, not an identity. If another writer appends to the same
-section between the moment you compute `li[2]` and the moment you write to it,
-that index now points at a different node — and the write lands on the wrong
-one, silently.
+An index is a position, not an identity. If another writer appends to the same section between the moment you compute `li[2]` and the moment you write to it, that index now points at a different node, and the write lands on the wrong one, silently.
 
-Address by content instead whenever more than one writer touches a document:
+Whenever more than one writer touches a document, address by content instead:
 
 ```
 '## In Progress > li[contains="c_7f3a"]'   → The list item whose text contains "c_7f3a"
 "## Notes > p[contains='TODO']"            → The paragraph containing "TODO"
 ```
 
-The substring is matched against the node's own source text, and must match
-**exactly one** node in scope. Matching several throws `AmbiguousSelectorError`
-rather than picking the first — silently editing one of several candidates is
-the failure this exists to prevent.
-
-```js
-import { AmbiguousSelectorError } from '@synexiom-labs/nodiom';
-
-try {
-  doc.delete('## In Progress > li[contains="c_7f3a"]');
-} catch (e) {
-  if (e instanceof AmbiguousSelectorError) {
-    // Use a longer or more distinctive substring.
-  }
-}
-```
-
-### Heading scope semantics
-
-"Content under `## Tasks`" means all nodes that appear after the `## Tasks` heading until the next heading of equal or lesser depth. This matches how you naturally read a Markdown document.
+The substring is matched against the node's own source text and must match **exactly one** node in scope. Matching several throws `AmbiguousSelectorError` rather than picking the first: silently editing one of several candidates is the failure this exists to prevent.
 
 ---
 
-## API Reference
+## API
 
-### Initialization
+### Loading
 
 ```typescript
 // From a file
 const doc = await Nodiom.fromFile('./wiki.md');
 
-// From a file with advisory locking (for concurrent access)
+// From a file, with an advisory lock (see Concurrency)
 const doc = await Nodiom.fromFile('./wiki.md', { lock: true, lockTimeout: 5000 });
 
-// From a string (no filesystem — safe for serverless)
-const doc = Nodiom.fromString(markdownContent);
+// From a string: no filesystem, safe for serverless
+const doc = Nodiom.fromString(markdown);
 ```
 
 ### Reading
 
 ```typescript
-// Returns the Markdown string of everything under the selector
+// The Markdown under a selector. For a heading, its body without the heading
+// line, so write(sel, read(sel)) changes nothing.
 const content: string = doc.read('# Project > ## Summary');
 
-// Returns an array of list item strings
+// Each list item's source under a selector, marker and nested lines included:
+// ['- [ ] Task A', '- [x] Task B\n  - [x] sub-step']
 const items: string[] = doc.readList('# Project > ## Tasks');
 
-// Returns metadata about the location
+// Whether a location exists, and what it is
 const info = doc.query('# Project > ## Tasks');
 // { exists: true, type: 'heading', depth: 2, childCount: 7, index: 3 }
 
-// Returns the structural outline of the document
+// The heading outline
 const outline = doc.tree();
 // [{ heading: 'Project', depth: 1, children: [{ heading: 'Tasks', depth: 2, children: [] }] }]
 ```
 
-### Mutating
+### Changing
 
-All mutation methods return `this`, so they can be chained.
+Mutations return `this`, so they chain.
 
 ```typescript
-// Replace all content within a section (heading is preserved)
-doc.write('# Project > ## Summary', 'The project is on track for Q3.');
+// Replace the body of a section; the heading is kept
+doc.write('# Project > ## Summary', 'On track for Q3.');
 
-// Append content after the last item in a section
-doc.append('# Project > ## Tasks', '- [ ] Final review');
+// Replace one list item. Text without its own bullet keeps the item's marker
+// and checkbox: this stays "- [ ] Final review (Friday)"
+doc.write('## Tasks > li[contains="Final review"]', 'Final review (Friday)');
 
-// Remove a node
-doc.delete('# Project > ## Completed > li[0]');
+// Add after the last node in a section, separated by a blank line
+doc.append('# Project > ## Tasks', '- [ ] Task C');
 
-// Chaining
+// Remove a node, or a heading together with its whole section
+doc.delete('# Project > ## Done > li[0]');
+
 doc
-  .append('# Project > ## Tasks', '- [ ] Task A')
-  .append('# Project > ## Tasks', '- [ ] Task B')
-  .delete('# Project > ## Completed > li[-1]');
+  .append('# Project > ## Tasks', '- [ ] Task D')
+  .delete('# Project > ## Done > li[-1]');
 ```
 
-### Serialization & File I/O
+Your content is inserted as written (only trimmed), never re-serialized, and everything you didn't address is left byte-for-byte as it was.
+
+### Saving
 
 ```typescript
-// Get the current document as a Markdown string
-const output: string = doc.toString();
+const markdown: string = doc.toString();
 
-// Write back to the original file (releases lock if held)
-await doc.save();
-
-// Write to a new file
-await doc.saveAs('./output.md');
-
-// Explicitly release a lock
-await doc.unlock();
+await doc.save();               // write back to the original file, release any lock
+await doc.saveAs('./out.md');   // write to a new file (keeps the original lock)
+await doc.unlock();             // release the lock explicitly
 ```
 
-### Error Handling
+### Errors
 
 ```typescript
-import { SelectorNotFoundError, SelectorParseError, LockError } from '@synexiom-labs/nodiom';
+import {
+  NodiomError,            // base class of the errors below
+  SelectorNotFoundError,  // nothing matched; .suggestions has near misses
+  SelectorParseError,     // the selector itself is malformed
+  AmbiguousSelectorError, // more than one node matched
+  LockError,              // couldn't get the file lock in time
+} from '@synexiom-labs/nodiom';
 
 try {
   doc.read('# Project > ## Taks'); // typo
 } catch (e) {
   if (e instanceof SelectorNotFoundError) {
     console.log(e.selector);     // "# Project > ## Taks"
-    console.log(e.suggestions);  // ["Tasks"] — fuzzy match
+    console.log(e.suggestions);  // ["Tasks"]
   }
 }
 ```
 
 ---
 
-## AI Agent Example
+## Fidelity
 
-A LangChain-style agent maintaining a project wiki:
+A structural editor is only useful if it doesn't damage what it doesn't touch. Nodiom edits the source text at the node's exact position rather than re-printing the document, so formatting, spacing, list markers and escaping outside the edited node stay as they were. On a sample of 2,369 real-world Markdown files (an early user's own notes), every file round-trips byte-identically.
 
-```typescript
-import { Nodiom } from '@synexiom-labs/nodiom';
+---
 
-async function agentUpdateWiki(wikiPath: string, taskDescription: string) {
-  // Load with lock — safe for concurrent agent access on the same machine
-  const doc = await Nodiom.fromFile(wikiPath, { lock: true });
+## Use it from AI agents
 
-  // Add a new active task
-  doc.append('## Tasks > ### Active', `- [ ] ${taskDescription}`);
+### On your own machine: nodiom-mcp
 
-  // Log the current task count
-  const activeTasks = doc.readList('## Tasks > ### Active');
-  console.log(`Active tasks: ${activeTasks.length}`);
+[nodiom-mcp](https://github.com/Synexiom-Labs/nodiom-mcp) exposes these operations as MCP tools (`nodiom_tree`, `nodiom_read`, `nodiom_read_list`, `nodiom_query`, `nodiom_write`, `nodiom_append`, `nodiom_delete`) for Claude Code, Claude Desktop, Cursor or any MCP client, on Markdown files on your disk.
 
-  // Save and release the lock
-  await doc.save();
-}
+```bash
+claude mcp add -s user nodiom -- npx -y @synexiom-labs/nodiom-mcp
 ```
+
+### Across machines, agents and people: Nodiom Cloud
+
+When agents run on different machines, or come from different vendors, they need one place to share state. [Nodiom Cloud](https://www.nodiom.md/?utm_source=github&utm_medium=readme) is that place, built on this engine:
+
+- **Shared documents** that several agents edit at once without overwriting each other.
+- **Boards**: columns are headings and cards are checklist items, so a board is a Markdown document you can read anywhere. Agents claim a card in one atomic move, so two never take the same task.
+- **A human review step.** Agents hand finished work to a review column and stop. A person approves it or sends it back with a note the agent reads, and agents can't skip it.
+- **Attribution and alerts.** Every write is attributed to the agent that made it, and review alerts go out by email, Slack or Discord.
+
+Connect from Claude, ChatGPT, Cursor or VS Code by adding one address and signing in, with no key to copy:
+
+```
+https://api.nodiom.md/mcp
+```
+
+There's a free plan. Setup for each app is at [nodiom.md](https://www.nodiom.md/?utm_source=github&utm_medium=readme#connect), and the full tool reference is in the [docs](https://app.nodiom.md/docs).
 
 ---
 
 ## Concurrency
 
-Nodiom includes advisory file locking via [`proper-lockfile`](https://github.com/moxystudio/node-proper-lockfile).
+On one machine, nodiom takes an advisory file lock via [`proper-lockfile`](https://github.com/moxystudio/node-proper-lockfile). `fromFile` acquires the lock *before* reading, so two processes can't both read the old version and overwrite each other.
 
 ```typescript
 const doc = await Nodiom.fromFile('./shared-wiki.md', { lock: true });
-// Other Nodiom processes trying to lock this file will wait or throw LockError
+// Other nodiom processes locking this file wait, or throw LockError after lockTimeout
 
-doc.append('## Log', `- ${new Date().toISOString()} Agent B completed task`);
+doc.append('## Log', `- ${new Date().toISOString()} Agent B finished the task`);
 await doc.save(); // writes and releases the lock
 ```
 
-**Scope of the concurrency guarantee:** Advisory locking prevents corruption from multiple Node.js processes on the **same machine**. For distributed multi-agent environments (multiple machines or serverless functions), use Nodiom Cloud (coming soon) which provides true distributed concurrency with structural merge semantics.
+The lock covers Node.js processes on the **same machine**. Across machines or serverless functions, use [Nodiom Cloud](https://www.nodiom.md/?utm_source=github&utm_medium=readme), where every write runs under a database row lock on the document.
 
 ---
 
 ## Comparison
 
-| Approach | Structured reads? | Structural writes? | Roundtrip fidelity | Serverless | Concurrent |
+| Approach | Structured reads? | Structural writes? | Round-trip fidelity | Serverless | Concurrent |
 |---|---|---|---|---|---|
-| `fs.readFile` + regex | No | Fragile | Depends on regex | No | No |
+| `fs.readFile` + regex | No | Fragile | Depends on the regex | No | No |
 | `gray-matter` | Frontmatter only | Frontmatter only | Yes | Yes | No |
-| Databases | No | No | No (loses Markdown) | Yes | Yes |
+| Databases | No | No | No (loses the Markdown) | Yes | Yes |
 | Vector DBs | Semantic only | No | No | Yes | Yes |
-| **Nodiom** | **Yes** | **Yes** | **Yes** | **Yes** | **Single-machine** |
+| **nodiom** | **Yes** | **Yes** | **Yes** | **Yes** (`fromString`) | **Same machine** |
+| **Nodiom Cloud** | **Yes** | **Yes** | **Yes** | **Yes** | **Across machines** |
 
 ---
 
 ## Roadmap
 
-- **v0.2.0** — `insert()` with positional control (`before` / `after` a sibling), `diff()` structural diffing, glob selectors (`## *Tasks*`)
-- **v0.3.0** — LangChain tool wrapper
-- **v1.0.0** — Stable selector syntax, production-ready API
-- **Nodiom Cloud** — Hosted HTTP API for serverless and distributed multi-agent use. No local setup required. [Join the waitlist →](https://nodiom.md#cloud)
+Planned, in no fixed order:
+
+- `insert()` with positional control: before or after a sibling node.
+- `diff()`: a structural diff between two versions of a document.
+- Glob heading selectors (`## *Tasks*`).
+- **1.0**: stable selector syntax and API.
+
+Releases are listed in the [CHANGELOG](./CHANGELOG.md).
 
 ---
 
 ## Contributing
 
-Contributions welcome. Please open an issue before submitting a PR for non-trivial changes.
+Contributions are welcome. Please open an issue before a PR for non-trivial changes.
 
 ```bash
-git clone https://github.com/synexiom-labs/nodiom
+git clone https://github.com/Synexiom-Labs/nodiom
 cd nodiom
 npm install
 npm test
