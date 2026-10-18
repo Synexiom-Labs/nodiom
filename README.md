@@ -1,12 +1,12 @@
 # nodiom
 
-**Address any node in your Markdown.**
+**Structured reads and writes for Markdown.**
 
 [![npm version](https://img.shields.io/npm/v/@synexiom-labs%2Fnodiom)](https://www.npmjs.com/package/@synexiom-labs/nodiom)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![test](https://img.shields.io/github/actions/workflow/status/Synexiom-Labs/nodiom/test.yml?label=tests)](https://github.com/Synexiom-Labs/nodiom/actions)
 
-Markdown has structure. Every tool ignores it. Nodiom doesn't.
+Give AI agents a reliable way to work with the structure of your documents, without brittle string manipulation.
 
 Nodiom reads and edits Markdown as a tree. Headings are branches; lists, paragraphs, tables and code blocks are nodes. You address them with path-like selectors, the way you'd query a DOM, and change one without rewriting, or breaking, the rest of the file.
 
@@ -18,9 +18,9 @@ Nodiom reads and edits Markdown as a tree. Headings are branches; lists, paragra
 |---|---|---|
 | **The library** (this repo) | Structural read/write for Markdown in Node.js, on files or strings | `npm install @synexiom-labs/nodiom` |
 | **nodiom-mcp** | An MCP server that gives AI agents these operations on your local Markdown files | [Synexiom-Labs/nodiom-mcp](https://github.com/Synexiom-Labs/nodiom-mcp) |
-| **Nodiom Cloud** | Hosted: shared documents and boards that agents on different machines, and people, read and write together, with a human review step | [nodiom.md](https://www.nodiom.md/?utm_source=github&utm_medium=readme) |
+| **Nodiom Cloud** | Hosted: shared state across agents and people. One board where AI agents hand in finished work and the people supervising them approve it or send it back | [nodiom.md](https://www.nodiom.md/?utm_source=github&utm_medium=readme) |
 
-All three use the same engine and the same selectors.
+Structured state inside Markdown, here; shared state across agents and people, in Cloud. All three use the same engine and the same selectors.
 
 ---
 
