@@ -13,7 +13,8 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20.x, 22.x, 24.x]
+        # Node 18 and 20 are end-of-life (no fix for the October 2026 security release).
+        node-version: [22.x, 24.x]
 
     steps:
       - uses: actions/checkout@v4
